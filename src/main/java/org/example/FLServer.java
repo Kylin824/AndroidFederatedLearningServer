@@ -32,11 +32,16 @@ public class FLServer {
             }
         });
 
-        server.addEventListener("chatevent", MessageObject.class, new DataListener<MessageObject>() {
+        server.addEventListener("new message", ClientObject.class, new DataListener<ClientObject>() {
             @Override
-            public void onData(SocketIOClient client, MessageObject data, AckRequest ackRequest) {
+            public void onData(SocketIOClient client, ClientObject clientObject, AckRequest ackRequest) {
                 // broadcast messages to all clients
-                server.getBroadcastOperations().sendEvent("chatevent", data);
+
+                System.out.println(clientObject.getClientId());
+                System.out.println(clientObject.getClientGradient());
+                System.out.println(clientObject.getClientSocketId());
+                System.out.println(clientObject.getExtraMsg());
+
             }
         });
 
@@ -45,10 +50,6 @@ public class FLServer {
             public void onData(SocketIOClient socketIOClient, String str, AckRequest ackRequest) throws Exception {
                 System.out.println("add user: " + str);
 
-                LoginObject loginObject = new LoginObject();
-                loginObject.setNumUsers(1);
-
-                server.getClient(clientId).sendEvent("login", loginObject);
             }
         });
 

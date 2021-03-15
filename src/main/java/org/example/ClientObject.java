@@ -5,14 +5,16 @@ public class ClientObject {
     private String clientId;
     private String clientSocketId;
     private String clientGradient;
+    private String extraMsg;
 
     public ClientObject() {
     }
 
-    public ClientObject(String clientId, String clientSocketId, String clientGradient) {
+    public ClientObject(String clientId, String clientSocketId, String clientGradient, String extraMsg) {
         this.clientId = clientId;
         this.clientSocketId = clientSocketId;
         this.clientGradient = clientGradient;
+        this.extraMsg = extraMsg;
     }
 
     public String getClientId() {
@@ -37,5 +39,13 @@ public class ClientObject {
 
     public void setClientGradient(String clientGradient) {
         this.clientGradient = clientGradient;
+    }
+
+    public String getExtraMsg() {
+        return extraMsg;
+    }
+
+    public void setExtraMsg(String extraMsg) {
+        this.extraMsg = extraMsg;
     }
 }
