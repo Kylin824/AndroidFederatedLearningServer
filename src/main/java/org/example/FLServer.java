@@ -117,15 +117,41 @@ public class FLServer {
 
                 // emit client init settings
                 ClientInitObject clientInitObject = new ClientInitObject();
-                clientInitObject.setInitWeights(ModelUtils.modelToJson(globalModel));
+                clientInitObject.setArrW0(ModelUtils.model0WToJsonArray(globalModel));
+                clientInitObject.setArrB0(ModelUtils.model0BToJsonArray(globalModel));
+                clientInitObject.setArrW1(ModelUtils.model1WToJsonArray(globalModel));
+                clientInitObject.setArrB1(ModelUtils.model1BToJsonArray(globalModel));
                 clientInitObject.setBatchSize(50);
                 clientInitObject.setClientIndex(0);
                 clientInitObject.setEpoch(1);
-                socketIOServer.getClient(socketIOClient.getSessionId()).sendEvent("init", clientInitObject);
+                clientInitObject.setLayerNum(globalModel.getLayers().length);
 
-                System.out.println(clientInitObject.getInitWeights().toString());
+//                JSONArray arr = new JSONArray();
+//
+//                for (int i = 0; i < 800000; i++) {
+//                    arr.put(0.001d);
+//                }
+//
+//                JSONArray arr1 = new JSONArray();
+//                arr1.put(10d);
+//                arr1.put(20d);
+//                JSONArray arr2 = new JSONArray();
+//                arr2.put(30d);
+//                arr2.put(0.9d);
+
+//                clientInitObject.setArrW(arr);
+//                clientInitObject.setArrB(arr);
+//                arr.put(arr1);
+//                arr.put(arr2);
+//
+                System.out.println("len: " + clientInitObject.getArrW0().length());
+//                System.out.println(clientInitObject.getArrB().get(0));
+
+                System.out.println("init model");
 
                 System.out.println("send init object");
+
+                socketIOServer.getClient(socketIOClient.getSessionId()).sendEvent("init", clientInitObject);
             }
         });
 
@@ -153,17 +179,19 @@ public class FLServer {
                     if (clientUpdateAmount >= FLServer.NUM_CLIENTS_CONTACTED_PER_ROUND && currentRoundClientUpdates.size() > 0) {
 
                         // 更新全局模型
-                        globalModel = ModelUtils.updateModelWeigths(currentRoundClientUpdates, globalModel);
+                        globalModel = ModelUtils.updateGlobalModel(currentRoundClientUpdates, globalModel);
 
+
+                        System.out.println("update global model success");
                         // TODO 测试全局模型精度
 
 
-                        if (currentRound >= FLServer.MAX_NUM_ROUNDS) {
-                            stopAndEval();
-                        }
-                        else {
-                            trainNextRound();
-                        }
+//                        if (currentRound >= FLServer.MAX_NUM_ROUNDS) {
+//                            stopAndEval();
+//                        }
+//                        else {
+//                            trainNextRound();
+//                        }
                     }
                 }
             }
@@ -177,12 +205,14 @@ public class FLServer {
 
         for (UUID clientId : readyClientSids) {
             RequestUpdateObject requestUpdateObject = new RequestUpdateObject();
-            requestUpdateObject.setWeights(ModelUtils.modelToJson(globalModel));
-            requestUpdateObject.setModelId(modelId);
+//            requestUpdateObject.setWeights(ModelUtils.modelToJson(globalModel));
+            requestUpdateObject.setArrW0(ModelUtils.model0WToJsonArray(globalModel));
+            requestUpdateObject.setArrB0(ModelUtils.model0BToJsonArray(globalModel));
+            requestUpdateObject.setArrW1(ModelUtils.model1WToJsonArray(globalModel));
+            requestUpdateObject.setArrB1(ModelUtils.model1BToJsonArray(globalModel));
             requestUpdateObject.setCurrentRound(currentRound);
             socketIOServer.getClient(clientId).sendEvent("request_update", requestUpdateObject);
         }
-
     }
 
     public void stopAndEval() {
