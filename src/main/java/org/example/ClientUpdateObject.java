@@ -1,13 +1,15 @@
 package org.example;
 
+import org.json.JSONObject;
+
 public class ClientUpdateObject {
     private Integer roundNumber;
-    private String weights;
+    private JSONObject weights;
 
     public ClientUpdateObject() {
     }
 
-    public ClientUpdateObject(Integer roundNumber, String weights) {
+    public ClientUpdateObject(Integer roundNumber, JSONObject weights) {
         this.roundNumber = roundNumber;
         this.weights = weights;
     }
@@ -20,11 +22,11 @@ public class ClientUpdateObject {
         this.roundNumber = roundNumber;
     }
 
-    public String getWeights() {
+    public JSONObject getWeights() {
         return weights;
     }
 
-    public void setWeights(String weights) {
+    public void setWeights(JSONObject weights) {
         this.weights = weights;
     }
 }

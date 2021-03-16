@@ -1,25 +1,27 @@
 package org.example;
 
+import org.json.JSONObject;
+
 public class RequestUpdateObject {
 
     private String modelId;
     private Integer currentRound;
-    private String weights;
+    private JSONObject weights;
 
     public RequestUpdateObject() {
     }
 
-    public RequestUpdateObject(String modelId, Integer currentRound, String weights) {
+    public RequestUpdateObject(String modelId, Integer currentRound, JSONObject weights) {
         this.modelId = modelId;
         this.currentRound = currentRound;
         this.weights = weights;
     }
 
-    public String getWeights() {
+    public JSONObject getWeights() {
         return weights;
     }
 
-    public void setWeights(String weights) {
+    public void setWeights(JSONObject weights) {
         this.weights = weights;
     }
 

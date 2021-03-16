@@ -119,16 +119,16 @@
 <!--      <artifactId>logback-classic</artifactId>-->
 <!--      <version>${logback.version}</version>-->
 <!--    </dependency>-->
-<!--    <dependency>-->
-<!--      <groupId>org.datavec</groupId>-->
-<!--      <artifactId>datavec-data-codec</artifactId>-->
-<!--      <version>${dl4j-master.version}</version>-->
-<!--    </dependency>-->
-<!--    <dependency>-->
-<!--      <groupId>org.bytedeco</groupId>-->
-<!--      <artifactId>javacv-platform</artifactId>-->
-<!--      <version>1.5.2</version>-->
-<!--    </dependency>-->
+    <dependency>
+      <groupId>org.datavec</groupId>
+      <artifactId>datavec-data-codec</artifactId>
+      <version>${dl4j-master.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>javacv-platform</artifactId>
+      <version>1.5.2</version>
+    </dependency>
 
   </dependencies>
 

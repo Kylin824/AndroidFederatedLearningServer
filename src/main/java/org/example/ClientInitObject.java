@@ -1,26 +1,29 @@
 package org.example;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 public class ClientInitObject {
     private Integer epoch;
     private Integer batchSize;
     private Integer clientIndex;
-    private String initWeights;
+    private JSONObject initWeights;
 
     public ClientInitObject() {
     }
 
-    public ClientInitObject(Integer epoch, Integer batchSize, Integer clientIndex, String initWeights) {
+    public ClientInitObject(Integer epoch, Integer batchSize, Integer clientIndex, JSONObject initWeights) {
         this.epoch = epoch;
         this.batchSize = batchSize;
         this.clientIndex = clientIndex;
         this.initWeights = initWeights;
     }
 
-    public String getInitWeights() {
+    public JSONObject getInitWeights() {
         return initWeights;
     }
 
-    public void setInitWeights(String initWeights) {
+    public void setInitWeights(JSONObject initWeights) {
         this.initWeights = initWeights;
     }
 

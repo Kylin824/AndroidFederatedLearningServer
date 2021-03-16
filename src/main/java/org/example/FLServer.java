@@ -7,6 +7,15 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
+import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.layers.DenseLayer;
+import org.deeplearning4j.nn.conf.layers.OutputLayer;
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.nn.weights.WeightInit;
+import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.learning.config.Nesterovs;
+import org.nd4j.linalg.lossfunctions.LossFunctions;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -16,24 +25,59 @@ public class FLServer {
 
     private static final Integer MIN_NUM_WORKERS = 1;
     private static final Integer MAX_NUM_ROUNDS = 50;
-    private static final Integer NUM_CLIENTS_CONTACTED_PER_ROUND = 2;
+    private static final Integer NUM_CLIENTS_CONTACTED_PER_ROUND = 1;
     private static final Integer ROUNDS_BETWEEN_VALIDATIONS = 2;
 
 
     private String modelId;
     private HashSet<UUID> readyClientSids = new HashSet<>();
-    private Integer currentRound = -1;
+    private Integer currentRound = 0;
     private ArrayList<ClientUpdateObject> currentRoundClientUpdates = new ArrayList<>();
     private ArrayList<ClientEvalObject> evalClientUpdates = new ArrayList<>();
     private SocketIOServer socketIOServer;
+    private Integer clientUpdateAmount;
+    private MultiLayerNetwork globalModel;
 
     public FLServer() {
+        globalModel = buildGlobalModel();
         Configuration config = new Configuration();
         config.setHostname("localhost");
         config.setPort(9092);
         socketIOServer = new SocketIOServer(config);
         modelId = UUID.randomUUID().toString();
         registerHandles();
+    }
+
+    private MultiLayerNetwork buildGlobalModel() {
+
+        int numRows = 28;
+        int numColumns = 28;
+        int outputNum = 10; // number of output classes
+        int randomSeed = 123; // random number seed for reproducibility
+
+        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
+                .seed(randomSeed) //include a random seed for reproducibility
+                // use stochastic gradient descent as an optimization algorithm
+                .updater(new Nesterovs(0.006, 0.9))
+                .l2(1e-4)
+                .list()
+                .layer(new DenseLayer.Builder() //create the first, input layer with xavier initialization
+                        .nIn(numRows * numColumns)
+                        .nOut(1000)
+                        .activation(Activation.RELU)
+                        .weightInit(WeightInit.XAVIER)
+                        .build())
+                .layer(new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD) //create hidden layer
+                        .nIn(1000)
+                        .nOut(outputNum)
+                        .activation(Activation.SOFTMAX)
+                        .weightInit(WeightInit.XAVIER)
+                        .build())
+                .build();
+
+        MultiLayerNetwork model = new MultiLayerNetwork(conf);
+        model.init();
+        return model;
     }
 
     private void registerHandles() {
@@ -44,6 +88,7 @@ public class FLServer {
                 // broadcast messages to all clients
                 System.out.println(data.getUserName() + " : " + data.getMessage());
                 socketIOServer.getBroadcastOperations().sendEvent("chatevent", data);
+
             }
         });
 
@@ -72,12 +117,15 @@ public class FLServer {
 
                 // emit client init settings
                 ClientInitObject clientInitObject = new ClientInitObject();
-                clientInitObject.setInitWeights("init_weights");
+                clientInitObject.setInitWeights(ModelUtils.modelToJson(globalModel));
                 clientInitObject.setBatchSize(50);
                 clientInitObject.setClientIndex(0);
                 clientInitObject.setEpoch(1);
-
                 socketIOServer.getClient(socketIOClient.getSessionId()).sendEvent("init", clientInitObject);
+
+                System.out.println(clientInitObject.getInitWeights().toString());
+
+                System.out.println("send init object");
             }
         });
 
@@ -86,7 +134,7 @@ public class FLServer {
             public void onData(SocketIOClient socketIOClient, ClientReadyObject obj, AckRequest ackRequest) {
                 System.out.println("client ready : " + socketIOClient.getSessionId() + " train size: " + obj.getTrainSize());
                 readyClientSids.add(socketIOClient.getSessionId());
-                if (readyClientSids.size() >= FLServer.MIN_NUM_WORKERS && currentRound == -1)
+                if (readyClientSids.size() >= FLServer.MIN_NUM_WORKERS && currentRound == 0)
                     trainNextRound();
             }
         });
@@ -97,13 +145,25 @@ public class FLServer {
                 System.out.println("client update : " + socketIOClient.getSessionId());
                 // 舍弃不是本轮的更新
                 if (data.getRoundNumber().equals(currentRound)) {
+                    clientUpdateAmount += 1;
                     currentRoundClientUpdates.add(data);
-                    System.out.println("client update weights : " + data.getWeights());
-                    if (currentRound >= FLServer.MAX_NUM_ROUNDS) {
-                        stopAndEval();
-                    }
-                    else {
-                        trainNextRound();
+                    System.out.println("client update weights ");
+
+                    // 收到足够数量的更新，舍弃其他超时的
+                    if (clientUpdateAmount >= FLServer.NUM_CLIENTS_CONTACTED_PER_ROUND && currentRoundClientUpdates.size() > 0) {
+
+                        // 更新全局模型
+                        globalModel = ModelUtils.updateModelWeigths(currentRoundClientUpdates, globalModel);
+
+                        // TODO 测试全局模型精度
+
+
+                        if (currentRound >= FLServer.MAX_NUM_ROUNDS) {
+                            stopAndEval();
+                        }
+                        else {
+                            trainNextRound();
+                        }
                     }
                 }
             }
@@ -117,7 +177,7 @@ public class FLServer {
 
         for (UUID clientId : readyClientSids) {
             RequestUpdateObject requestUpdateObject = new RequestUpdateObject();
-            requestUpdateObject.setWeights("Weight_Round" + currentRound);
+            requestUpdateObject.setWeights(ModelUtils.modelToJson(globalModel));
             requestUpdateObject.setModelId(modelId);
             requestUpdateObject.setCurrentRound(currentRound);
             socketIOServer.getClient(clientId).sendEvent("request_update", requestUpdateObject);
