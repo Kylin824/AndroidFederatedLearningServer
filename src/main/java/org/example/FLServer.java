@@ -29,7 +29,6 @@ public class FLServer {
     private static final Integer ROUNDS_BETWEEN_VALIDATIONS = 2;
 
 
-    private String modelId;
     private HashSet<UUID> readyClientSids = new HashSet<>();
     private Integer currentRound = 0;
     private ArrayList<ClientUpdateObject> currentRoundClientUpdates = new ArrayList<>();
@@ -44,7 +43,7 @@ public class FLServer {
         config.setHostname("localhost");
         config.setPort(9092);
         socketIOServer = new SocketIOServer(config);
-        modelId = UUID.randomUUID().toString();
+//        modelId = UUID.randomUUID().toString();
         registerHandles();
     }
 
@@ -63,12 +62,12 @@ public class FLServer {
                 .list()
                 .layer(new DenseLayer.Builder() //create the first, input layer with xavier initialization
                         .nIn(numRows * numColumns)
-                        .nOut(1000)
+                        .nOut(100)
                         .activation(Activation.RELU)
                         .weightInit(WeightInit.XAVIER)
                         .build())
                 .layer(new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD) //create hidden layer
-                        .nIn(1000)
+                        .nIn(100)
                         .nOut(outputNum)
                         .activation(Activation.SOFTMAX)
                         .weightInit(WeightInit.XAVIER)
@@ -107,6 +106,7 @@ public class FLServer {
             public void onDisconnect(SocketIOClient socketIOClient) {
                 UUID clientId = socketIOClient.getSessionId();
                 System.out.println("client disconnected: " + clientId);
+                readyClientSids.remove(clientId);
             }
         });
 
