@@ -80,10 +80,6 @@ public class MNISTSingleLayerModel {
         DataSetIterator mnistTrain = new MnistDataSetIterator(batchSize, true, seed);
         DataSetIterator mnistTest = new MnistDataSetIterator(batchSize, false, seed);
 
-
-
-
-
         JSONObject jsonObject = new JSONObject();
 
 

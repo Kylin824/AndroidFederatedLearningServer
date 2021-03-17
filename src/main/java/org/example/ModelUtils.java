@@ -101,36 +101,36 @@ public class ModelUtils {
         for (int i = 0; i < totalClientNum; i++) {
             ClientUpdateObject clientUpdateObject = currentClientUpdates.get(i);
 
-            JSONArray arrW0 = clientUpdateObject.getArrW0();
+            Double[] arrW0 = clientUpdateObject.getArrW0();
             double currentValue = 0d;
 
             for (int j = 0; j < paramW0.rows(); j++) {
                 for (int k = 0; k < paramW0.columns(); k++) {
-                    currentValue = (double)arrW0.get(j * paramW0.columns() + k);
+                    currentValue = (double)arrW0[j * paramW0.columns() + k];
                     paramW0.putScalar(j, k, currentValue + paramW0.getDouble(j, k));
                 }
             }
 
 
-            JSONArray arrW1 = clientUpdateObject.getArrW1();
+            Double[] arrW1 = clientUpdateObject.getArrW1();
             for (int j = 0; j < paramW1.rows(); j++) {
                 for (int k = 0; k < paramW1.columns(); k++) {
-                    currentValue = (double)arrW1.get(j * paramW1.columns() + k);
+                    currentValue = (double)arrW1[j * paramW1.columns() + k];
                     paramW1.putScalar(j, k, currentValue + paramW1.getDouble(j, k));
                 }
             }
 
-            JSONArray arrB0 = clientUpdateObject.getArrB0();
+            Double[] arrB0 = clientUpdateObject.getArrB0();
 
             for (int k = 0; k < paramB0.columns(); k++) {
-                currentValue = (double)arrB0.get(k);
+                currentValue = (double)arrB0[k];
                 paramB0.putScalar(k, currentValue + paramB0.getDouble(k));
             }
 
-            JSONArray arrB1 = clientUpdateObject.getArrB1();
+            Double[] arrB1 = clientUpdateObject.getArrB1();
 
             for (int k = 0; k < paramB1.columns(); k++) {
-                currentValue = (double)arrB1.get(k);
+                currentValue = (double)arrB1[k];
                 paramB1.putScalar(k, currentValue + paramB1.getDouble(k));
             }
         }

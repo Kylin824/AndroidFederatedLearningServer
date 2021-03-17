@@ -5,6 +5,8 @@ import org.json.JSONArray;
 public class RequestUpdateObject {
 
     private Integer currentRound;
+    private Double testAcc;
+    private Double testLoss;
     private JSONArray arrW0;
     private JSONArray arrB0;
     private JSONArray arrW1;
@@ -13,8 +15,10 @@ public class RequestUpdateObject {
     public RequestUpdateObject() {
     }
 
-    public RequestUpdateObject(Integer currentRound, JSONArray arrW0, JSONArray arrB0, JSONArray arrW1, JSONArray arrB1) {
+    public RequestUpdateObject(Integer currentRound, Double testAcc, Double testLoss, JSONArray arrW0, JSONArray arrB0, JSONArray arrW1, JSONArray arrB1) {
         this.currentRound = currentRound;
+        this.testAcc = testAcc;
+        this.testLoss = testLoss;
         this.arrW0 = arrW0;
         this.arrB0 = arrB0;
         this.arrW1 = arrW1;
@@ -59,5 +63,21 @@ public class RequestUpdateObject {
 
     public void setArrB1(JSONArray arrB1) {
         this.arrB1 = arrB1;
+    }
+
+    public Double getTestAcc() {
+        return testAcc;
+    }
+
+    public void setTestAcc(Double testAcc) {
+        this.testAcc = testAcc;
+    }
+
+    public Double getTestLoss() {
+        return testLoss;
+    }
+
+    public void setTestLoss(Double testLoss) {
+        this.testLoss = testLoss;
     }
 }

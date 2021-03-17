@@ -7,16 +7,20 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DataListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
+import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
+import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.learning.config.Nesterovs;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.UUID;
@@ -24,7 +28,7 @@ import java.util.UUID;
 public class FLServer {
 
     private static final Integer MIN_NUM_WORKERS = 1;
-    private static final Integer MAX_NUM_ROUNDS = 50;
+    private static final Integer MAX_NUM_ROUNDS = 20;
     private static final Integer NUM_CLIENTS_CONTACTED_PER_ROUND = 1;
     private static final Integer ROUNDS_BETWEEN_VALIDATIONS = 2;
 
@@ -32,16 +36,19 @@ public class FLServer {
     private HashSet<UUID> readyClientSids = new HashSet<>();
     private Integer currentRound = 0;
     private ArrayList<ClientUpdateObject> currentRoundClientUpdates = new ArrayList<>();
-    private ArrayList<ClientEvalObject> evalClientUpdates = new ArrayList<>();
     private SocketIOServer socketIOServer;
-    private Integer clientUpdateAmount;
+    private Integer clientUpdateAmount = 0;
     private MultiLayerNetwork globalModel;
+    private Evaluation eval;
+    private DataSetIterator mnistTest;
 
-    public FLServer() {
+    public FLServer() throws IOException {
         globalModel = buildGlobalModel();
+        mnistTest = new MnistDataSetIterator(64, false, 123);
         Configuration config = new Configuration();
         config.setHostname("localhost");
         config.setPort(9092);
+        config.setMaxFramePayloadLength(2097152); // Netty接收消息默认65536 需扩大
         socketIOServer = new SocketIOServer(config);
 //        modelId = UUID.randomUUID().toString();
         registerHandles();
@@ -144,12 +151,12 @@ public class FLServer {
 //                arr.put(arr1);
 //                arr.put(arr2);
 //
-                System.out.println("len: " + clientInitObject.getArrW0().length());
+//                System.out.println("len: " + clientInitObject.getArrW0().length());
 //                System.out.println(clientInitObject.getArrB().get(0));
 
                 System.out.println("init model");
 
-                System.out.println("send init object");
+                System.out.println("send init params");
 
                 socketIOServer.getClient(socketIOClient.getSessionId()).sendEvent("init", clientInitObject);
             }
@@ -167,12 +174,16 @@ public class FLServer {
 
         socketIOServer.addEventListener("client_update", ClientUpdateObject.class, new DataListener<ClientUpdateObject>() {
             @Override
-            public void onData(SocketIOClient socketIOClient, ClientUpdateObject data, AckRequest ackRequest) {
+            public void onData(SocketIOClient socketIOClient, ClientUpdateObject clientUpdateObj, AckRequest ackRequest) {
                 System.out.println("client update : " + socketIOClient.getSessionId());
+
+//                System.out.println("current round : " + clientUpdateObj.getCurrentRound());
+//                System.out.println("arrW: " + clientUpdateObj.getArrW0()[0] + " and " + clientUpdateObj.getArrW0()[1]);
+
                 // 舍弃不是本轮的更新
-                if (data.getRoundNumber().equals(currentRound)) {
+                if (clientUpdateObj.getCurrentRound().equals(currentRound)) {
                     clientUpdateAmount += 1;
-                    currentRoundClientUpdates.add(data);
+                    currentRoundClientUpdates.add(clientUpdateObj);
                     System.out.println("client update weights ");
 
                     // 收到足够数量的更新，舍弃其他超时的
@@ -180,18 +191,14 @@ public class FLServer {
 
                         // 更新全局模型
                         globalModel = ModelUtils.updateGlobalModel(currentRoundClientUpdates, globalModel);
-
-
                         System.out.println("update global model success");
-                        // TODO 测试全局模型精度
-
-
-//                        if (currentRound >= FLServer.MAX_NUM_ROUNDS) {
-//                            stopAndEval();
-//                        }
-//                        else {
-//                            trainNextRound();
-//                        }
+                        if (currentRound >= FLServer.MAX_NUM_ROUNDS) {
+                            System.out.println("finish all training !!!");
+                             stopAndEval();
+                        }
+                        else {
+                            trainNextRound();
+                        }
                     }
                 }
             }
@@ -203,6 +210,12 @@ public class FLServer {
         currentRoundClientUpdates.clear();
         System.out.println("### Round " + currentRound + " ###");
 
+        eval = globalModel.evaluate(mnistTest);
+        System.out.println("===== stats start ======");
+        System.out.println(eval.stats());
+        System.out.println("=====  stats end  ======");
+
+
         for (UUID clientId : readyClientSids) {
             RequestUpdateObject requestUpdateObject = new RequestUpdateObject();
 //            requestUpdateObject.setWeights(ModelUtils.modelToJson(globalModel));
@@ -211,17 +224,25 @@ public class FLServer {
             requestUpdateObject.setArrW1(ModelUtils.model1WToJsonArray(globalModel));
             requestUpdateObject.setArrB1(ModelUtils.model1BToJsonArray(globalModel));
             requestUpdateObject.setCurrentRound(currentRound);
+            requestUpdateObject.setTestLoss(globalModel.score());
+//            requestUpdateObject.setTestLoss(eval.);
+            requestUpdateObject.setTestAcc(eval.accuracy());
             socketIOServer.getClient(clientId).sendEvent("request_update", requestUpdateObject);
         }
     }
 
     public void stopAndEval() {
-        evalClientUpdates.clear();
 
-        // 测试全局精度
-        Float globalTestAcc = 0.9f;
+        System.out.println("### Finish All Round ###");
+
+        eval = globalModel.evaluate(mnistTest);
+        System.out.println("===== Final Global Stat ======");
+        System.out.println(eval.stats());
+        System.out.println("=====  stats end  ======");
+
         ClientEvalObject clientEvalObject = new ClientEvalObject();
-        clientEvalObject.setFinalGlobalTestAcc(globalTestAcc);
+        clientEvalObject.setTestLoss(globalModel.score());
+        clientEvalObject.setTestAcc(eval.accuracy());
         // 测试本地精度
         for (UUID clientId : readyClientSids) {
             socketIOServer.getClient(clientId).sendEvent("stop_and_eval", clientEvalObject);

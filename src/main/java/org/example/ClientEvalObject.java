@@ -2,20 +2,30 @@ package org.example;
 
 public class ClientEvalObject {
 
-    private Float finalGlobalTestAcc;
+    private double testAcc;
+    private double testLoss;
 
     public ClientEvalObject() {
     }
 
-    public ClientEvalObject(Float finalGlobalTestAcc) {
-        this.finalGlobalTestAcc = finalGlobalTestAcc;
+    public ClientEvalObject(double testAcc, double testLoss) {
+        this.testAcc = testAcc;
+        this.testLoss = testLoss;
     }
 
-    public Float getFinalGlobalTestAcc() {
-        return finalGlobalTestAcc;
+    public double getTestAcc() {
+        return testAcc;
     }
 
-    public void setFinalGlobalTestAcc(Float finalGlobalTestAcc) {
-        this.finalGlobalTestAcc = finalGlobalTestAcc;
+    public void setTestAcc(double testAcc) {
+        this.testAcc = testAcc;
+    }
+
+    public double getTestLoss() {
+        return testLoss;
+    }
+
+    public void setTestLoss(double testLoss) {
+        this.testLoss = testLoss;
     }
 }
