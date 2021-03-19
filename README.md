@@ -1,4 +1,4 @@
-# A Federated learning server wrote in Java for communication with android clients
+# A Federated learning server wrote in Java for communicating with android clients
 - Build socket server by #netty-socketio#
 - Init global model by #dl4j#
 - Transfer model params by JSON
