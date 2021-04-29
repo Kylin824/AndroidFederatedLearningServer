@@ -27,7 +27,7 @@ import java.util.UUID;
 
 public class FLServer {
 
-    private static final Integer MIN_NUM_WORKERS = 1;
+    private static final Integer MIN_NUM_WORKERS = 1; //
     private static final Integer MAX_NUM_ROUNDS = 20;
     private static final Integer NUM_CLIENTS_CONTACTED_PER_ROUND = 1;
     private static final Integer ROUNDS_BETWEEN_VALIDATIONS = 2;
@@ -219,6 +219,9 @@ public class FLServer {
         for (UUID clientId : readyClientSids) {
             RequestUpdateObject requestUpdateObject = new RequestUpdateObject();
 //            requestUpdateObject.setWeights(ModelUtils.modelToJson(globalModel));
+
+            // TODO 传递模型更好的方式
+
             requestUpdateObject.setArrW0(ModelUtils.model0WToJsonArray(globalModel));
             requestUpdateObject.setArrB0(ModelUtils.model0BToJsonArray(globalModel));
             requestUpdateObject.setArrW1(ModelUtils.model1WToJsonArray(globalModel));
@@ -234,7 +237,7 @@ public class FLServer {
     public void stopAndEval() {
 
         System.out.println("### Finish All Round ###");
-
+        // server测试全局模型精度
         eval = globalModel.evaluate(mnistTest);
         System.out.println("===== Final Global Stat ======");
         System.out.println(eval.stats());
@@ -243,7 +246,10 @@ public class FLServer {
         ClientEvalObject clientEvalObject = new ClientEvalObject();
         clientEvalObject.setTestLoss(globalModel.score());
         clientEvalObject.setTestAcc(eval.accuracy());
-        // 测试本地精度
+
+        // TODO server端保存模型
+
+        // 发送全局模型精度
         for (UUID clientId : readyClientSids) {
             socketIOServer.getClient(clientId).sendEvent("stop_and_eval", clientEvalObject);
         }
